@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2">
+  <bpmn:process id="jenkins-automated-deployment-workflow-v1" name="jenkins-automated-deployment-workflow-v1" isExecutable="true">
+    <bpmn:documentation>Continuously build your application using Jenkins automation | file-code-o</bpmn:documentation>
+    <bpmn:startEvent id="StartEvent_jenkins-automated-deployment-workflow" name="Begin Workflow">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="gotsid" label="gotsID" type="string">
+            <camunda:properties>
+              <camunda:property id="description" value="Application Gots ID" />
+            </camunda:properties>
+          </camunda:formField>
+          <camunda:formField id="name" label="name" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>SequenceFlow_1domt3a</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="CallActivity_DevAndAssemblyTestingJenkins" name="Developer and Assembly Testing" calledElement="dev-pipeline-jenkins">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", "", "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[
+execution.setVariable("isSuccess", false);
+execution.setVariable("assignTo", "");
+execution.setVariable("isApproved", false);
+com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">jenkins-automated-deployment-workflow-v1</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">dev-pipeline-jenkins</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1domt3a</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0umzvdg</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_1domt3a" sourceRef="StartEvent_jenkins-automated-deployment-workflow" targetRef="CallActivity_DevAndAssemblyTestingJenkins" />
+    <bpmn:callActivity id="CallActivity_QCTestingJenkins" name="Integrated System Testing / QC Testing" calledElement="qc-pipeline-jenkins">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">jenkins-automated-deployment-workflow-v1</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">qc-pipeline-jenkins</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0umzvdg</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0ydfkwz</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_0umzvdg" sourceRef="CallActivity_DevAndAssemblyTestingJenkins" targetRef="CallActivity_QCTestingJenkins" />
+    <bpmn:callActivity id="CallActivity_ClientTestingJenkins" name="Client Testing" default="SequenceFlow_1blpvgn" calledElement="client-testing-pipeline-jenkins">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">jenkins-automated-deployment-workflow-v1</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">client-testing-pipeline-jenkins</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");
+
+//test migration]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0ydfkwz</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1blpvgn</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_TemporaryGotsFlow</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_0ydfkwz" sourceRef="CallActivity_QCTestingJenkins" targetRef="CallActivity_ClientTestingJenkins" />
+    <bpmn:callActivity id="CallActivity_ProdDeployJenkins" name="Production Deployment" calledElement="production-pipeline-jenkins">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", "", "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[
+com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">jenkins-automated-deployment-workflow-v1</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">production-pipeline-jenkins</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1blpvgn</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0eqx6f4</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_1blpvgn" sourceRef="CallActivity_ClientTestingJenkins" targetRef="CallActivity_ProdDeployJenkins" />
+    <bpmn:endEvent id="EndEvent_jenkins-automated-deployment-workflow" name="Compete">
+      <bpmn:incoming>SequenceFlow_0eqx6f4</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_TemporaryGotsFlow</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_0eqx6f4" sourceRef="CallActivity_ProdDeployJenkins" targetRef="EndEvent_jenkins-automated-deployment-workflow" />
+    <bpmn:sequenceFlow id="SequenceFlow_TemporaryGotsFlow" name="No GOTS ID" sourceRef="CallActivity_ClientTestingJenkins" targetRef="EndEvent_jenkins-automated-deployment-workflow">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[//execution.getVariable("gotsid").contains("TMP");
+execution.getVariable("associated")==false;]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="jenkins-automated-deployment-workflow-v1">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_jenkins-automated-deployment-workflow">
+        <dc:Bounds x="238" y="325" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="211" y="361" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_1wkpvsq_di" bpmnElement="CallActivity_DevAndAssemblyTestingJenkins">
+        <dc:Bounds x="343" y="303" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1domt3a_di" bpmnElement="SequenceFlow_1domt3a">
+        <di:waypoint xsi:type="dc:Point" x="274" y="343" />
+        <di:waypoint xsi:type="dc:Point" x="343" y="343" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="263.5" y="318" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_0fvhwsp_di" bpmnElement="CallActivity_QCTestingJenkins">
+        <dc:Bounds x="506" y="303" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0umzvdg_di" bpmnElement="SequenceFlow_0umzvdg">
+        <di:waypoint xsi:type="dc:Point" x="443" y="343" />
+        <di:waypoint xsi:type="dc:Point" x="506" y="343" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="429.5" y="318" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_1lv4dgd_di" bpmnElement="CallActivity_ClientTestingJenkins">
+        <dc:Bounds x="669" y="303" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0ydfkwz_di" bpmnElement="SequenceFlow_0ydfkwz">
+        <di:waypoint xsi:type="dc:Point" x="606" y="343" />
+        <di:waypoint xsi:type="dc:Point" x="669" y="343" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="592.5" y="318" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_1p0er8w_di" bpmnElement="CallActivity_ProdDeployJenkins">
+        <dc:Bounds x="825" y="303" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1blpvgn_di" bpmnElement="SequenceFlow_1blpvgn">
+        <di:waypoint xsi:type="dc:Point" x="769" y="343" />
+        <di:waypoint xsi:type="dc:Point" x="825" y="343" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="752" y="318" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_0s95iil_di" bpmnElement="EndEvent_jenkins-automated-deployment-workflow">
+        <dc:Bounds x="977" y="325" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="950" y="361" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0eqx6f4_di" bpmnElement="SequenceFlow_0eqx6f4">
+        <di:waypoint xsi:type="dc:Point" x="925" y="343" />
+        <di:waypoint xsi:type="dc:Point" x="977" y="343" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="906" y="318" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1w2ya9l_di" bpmnElement="SequenceFlow_TemporaryGotsFlow">
+        <di:waypoint xsi:type="dc:Point" x="719" y="383" />
+        <di:waypoint xsi:type="dc:Point" x="719" y="427" />
+        <di:waypoint xsi:type="dc:Point" x="995" y="427" />
+        <di:waypoint xsi:type="dc:Point" x="995" y="361" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="807" y="436" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

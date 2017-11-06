@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2">
+  <bpmn:process id="dev-pipeline-jenkins" name="dev-pipeline-jenkins" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_dev-pipeline-jenkins" name="Start New Deployment Process">
+      <bpmn:outgoing>SequenceFlow_1tjt9hf</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="CallActivity_RequestBuild" name="Request Build" default="SequenceFlow_1fobdi2" calledElement="jenkins-review-submodule">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "approval");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, assignTo, isApproved, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">RequestBuild</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_JenkinsBuildFailed</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_0nhairm</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_0cxbbdw</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1fobdi2</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_dev-pipeline-request-build-approved-false</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:serviceTask id="Task_envrionmentReadyEmail" name="Environment Notification" default="SequenceFlow_0a9dad" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.PreBuildNotification">
+      <bpmn:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "notification");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">Development</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1fobdi2</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0a9dad</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1fobdi2" sourceRef="CallActivity_RequestBuild" targetRef="Task_envrionmentReadyEmail" />
+    <bpmn:sequenceFlow id="SequenceFlow_0a9dad" sourceRef="Task_envrionmentReadyEmail" targetRef="Task_TriggerJenkinsDevelopmentPipeline" />
+    <bpmn:callActivity id="Task_TriggerJenkinsDevelopmentPipeline" name="Trigger Jenkins Development Pipeline" default="SequenceFlow_1kb9opm" calledElement="jenkins-pipeline-submodule">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">triggerJenkinsDevelopment</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "assignTo"), false, com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic"), pipeline_id, false, "jenkins");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, assignTo, false, com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic"), pipeline_id, String.valueOf(execution.getVariable("isSuccess")));]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0a9dad</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_JenkinsBuildFailed</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1kb9opm</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_JenkinsBuildFailed" name="Failed" sourceRef="Task_TriggerJenkinsDevelopmentPipeline" targetRef="CallActivity_RequestBuild">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("isSuccess")==false]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="ServiceTask_EnvironmentReady" name="Environment is Ready Notification" default="SequenceFlow_10mwvl7" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.EnvironmentReadyNotification">
+      <bpmn:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "notification");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">Development</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1kb9opm</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_10mwvl7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1kb9opm" sourceRef="Task_TriggerJenkinsDevelopmentPipeline" targetRef="ServiceTask_EnvironmentReady" />
+    <bpmn:endEvent id="EndEvent_0qdlwf9">
+      <bpmn:incoming>SequenceFlow_1x4aauq</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1ukpeyj" sourceRef="Task_DeployToEnvironments" targetRef="ExclusiveGateway_0p1kocs" />
+    <bpmn:sequenceFlow id="SequenceFlow_1tjt9hf" sourceRef="StartEvent_dev-pipeline-jenkins" targetRef="Task_DeployToEnvironments" />
+    <bpmn:serviceTask id="Task_DeployToEnvironments" name="Deploy To Environments" camunda:class="com.att.cicd.deploymentpipeline.workflow.dataaccess.GetIndexInformation">
+      <bpmn:incoming>SequenceFlow_1tjt9hf</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1ukpeyj</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_0p1kocs" default="SequenceFlow_0nhairm">
+      <bpmn:incoming>SequenceFlow_1ukpeyj</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_10mwvl7</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0nhairm</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1x4aauq</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_0nhairm" sourceRef="ExclusiveGateway_0p1kocs" targetRef="CallActivity_RequestBuild" />
+    <bpmn:sequenceFlow id="SequenceFlow_1x4aauq" name="All Deployments Complete" sourceRef="ExclusiveGateway_0p1kocs" targetRef="EndEvent_0qdlwf9">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[((execution.getVariable("array_indexer") > execution.getVariable("numDeployments")) == true)]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_10mwvl7" name="Next Deployment" sourceRef="ServiceTask_EnvironmentReady" targetRef="ExclusiveGateway_0p1kocs" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_1n83yu9">
+      <bpmn:incoming>SequenceFlow_dev-pipeline-request-build-approved-false</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0cxbbdw</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_0cxbbdw" sourceRef="ExclusiveGateway_1n83yu9" targetRef="CallActivity_RequestBuild" />
+    <bpmn:sequenceFlow id="SequenceFlow_dev-pipeline-request-build-approved-false" sourceRef="CallActivity_RequestBuild" targetRef="ExclusiveGateway_1n83yu9">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("isApproved")==false]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="dev-pipeline-jenkins">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_dev-pipeline-jenkins">
+        <dc:Bounds x="59" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="32" y="138" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_1wy3ei6_di" bpmnElement="CallActivity_RequestBuild">
+        <dc:Bounds x="393" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_1viryuq_di" bpmnElement="Task_envrionmentReadyEmail">
+        <dc:Bounds x="563" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1fobdi2_di" bpmnElement="SequenceFlow_1fobdi2">
+        <di:waypoint xsi:type="dc:Point" x="493" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="563" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="483" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_17amwmd_di" bpmnElement="SequenceFlow_0a9dad">
+        <di:waypoint xsi:type="dc:Point" x="663" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="735" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="654" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_0w98br5_di" bpmnElement="Task_TriggerJenkinsDevelopmentPipeline">
+        <dc:Bounds x="735" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_06tbml5_di" bpmnElement="SequenceFlow_JenkinsBuildFailed">
+        <di:waypoint xsi:type="dc:Point" x="785" y="160" />
+        <di:waypoint xsi:type="dc:Point" x="785" y="221" />
+        <di:waypoint xsi:type="dc:Point" x="443" y="221" />
+        <di:waypoint xsi:type="dc:Point" x="443" y="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="568" y="200" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_04gmqwl_di" bpmnElement="ServiceTask_EnvironmentReady">
+        <dc:Bounds x="909" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1kb9opm_di" bpmnElement="SequenceFlow_1kb9opm">
+        <di:waypoint xsi:type="dc:Point" x="835" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="909" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="827" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_0qdlwf9_di" bpmnElement="EndEvent_0qdlwf9">
+        <dc:Bounds x="296" y="206" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="269" y="242" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ukpeyj_di" bpmnElement="SequenceFlow_1ukpeyj">
+        <di:waypoint xsi:type="dc:Point" x="237" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="289" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="218" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1tjt9hf_di" bpmnElement="SequenceFlow_1tjt9hf">
+        <di:waypoint xsi:type="dc:Point" x="95" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="137" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="71" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_18pjnrl_di" bpmnElement="Task_DeployToEnvironments">
+        <dc:Bounds x="137" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0p1kocs_di" bpmnElement="ExclusiveGateway_0p1kocs" isMarkerVisible="true">
+        <dc:Bounds x="289" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="269" y="145" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0nhairm_di" bpmnElement="SequenceFlow_0nhairm">
+        <di:waypoint xsi:type="dc:Point" x="339" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="393" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="321" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1x4aauq_di" bpmnElement="SequenceFlow_1x4aauq">
+        <di:waypoint xsi:type="dc:Point" x="314" y="145" />
+        <di:waypoint xsi:type="dc:Point" x="314" y="206" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="269" y="250.8490566037736" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_10mwvl7_di" bpmnElement="SequenceFlow_10mwvl7">
+        <di:waypoint xsi:type="dc:Point" x="959" y="80" />
+        <di:waypoint xsi:type="dc:Point" x="959" y="-28" />
+        <di:waypoint xsi:type="dc:Point" x="314" y="-28" />
+        <di:waypoint xsi:type="dc:Point" x="314" y="95" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="586.0000009304738" y="-12.999978938503745" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1n83yu9_di" bpmnElement="ExclusiveGateway_1n83yu9" isMarkerVisible="true">
+        <dc:Bounds x="418" y="9" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="398" y="59" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0cxbbdw_di" bpmnElement="SequenceFlow_0cxbbdw">
+        <di:waypoint xsi:type="dc:Point" x="468" y="34" />
+        <di:waypoint xsi:type="dc:Point" x="484" y="34" />
+        <di:waypoint xsi:type="dc:Point" x="484" y="81" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="431" y="9" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_16leyqy_di" bpmnElement="SequenceFlow_dev-pipeline-request-build-approved-false">
+        <di:waypoint xsi:type="dc:Point" x="398" y="85" />
+        <di:waypoint xsi:type="dc:Point" x="398" y="34" />
+        <di:waypoint xsi:type="dc:Point" x="418" y="34" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="368" y="49.5" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

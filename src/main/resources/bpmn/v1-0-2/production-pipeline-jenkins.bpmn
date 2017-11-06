@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2">
+  <bpmn:process id="production-pipeline-jenkins" name="production-pipeline-jenkins" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_ProductionPipeline" name="Start New Production Deployment Process">
+      <bpmn:outgoing>SequenceFlow_0x3gy28</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="CallActivity_RequestDeploymentToProduction" name="Request Deployment to Production" default="SequenceFlow_00mbhnd" calledElement="jenkins-review-submodule">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "approval");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, assignTo, isApproved, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">RequestDeploymentToProduction</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0bcq0rt</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_jenkinsBuildFailed</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1sle4ls</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_RequestDeploymentToProductionApprovalFalse</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_00mbhnd</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_0x3gy28" sourceRef="StartEvent_ProductionPipeline" targetRef="ServiceTask_16vzvwd" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_04oras9">
+      <bpmn:incoming>SequenceFlow_RequestDeploymentToProductionApprovalFalse</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0bcq0rt</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_RequestDeploymentToProductionApprovalFalse" sourceRef="CallActivity_RequestDeploymentToProduction" targetRef="ExclusiveGateway_04oras9">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("isApproved")==false]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_0bcq0rt" sourceRef="ExclusiveGateway_04oras9" targetRef="CallActivity_RequestDeploymentToProduction" />
+    <bpmn:serviceTask id="ServiceTask_ProductionDeploymentNotification" name="Deployment Notification" default="SequenceFlow_0deigo3" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.PreBuildNotification">
+      <bpmn:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "notification");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">Production Testing</camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_00mbhnd</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0deigo3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_00mbhnd" sourceRef="CallActivity_RequestDeploymentToProduction" targetRef="ServiceTask_ProductionDeploymentNotification" />
+    <bpmn:callActivity id="CallActivity_1o16in5" name="Trigger Jenkins Production Pipeline" default="SequenceFlow_035eepe" calledElement="jenkins-pipeline-submodule">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">triggerJenkinsProduction</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, assignTo, false, com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic"), pipeline_id, false, "jenkins");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, assignTo, false, com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic"), pipeline_id, String.valueOf(execution.getVariable("isSuccess")));]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0deigo3</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_jenkinsBuildFailed</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_035eepe</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_0deigo3" sourceRef="ServiceTask_ProductionDeploymentNotification" targetRef="CallActivity_1o16in5" />
+    <bpmn:sequenceFlow id="SequenceFlow_jenkinsBuildFailed" name="Fail" sourceRef="CallActivity_1o16in5" targetRef="CallActivity_RequestDeploymentToProduction">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("isSuccess")==false]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="CallActivity_NotifyClientsOfDeployment" name="Notify Clients of Deployment" default="SequenceFlow_1ydd1dv" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.EnvironmentReadyNotification">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="processName">Production</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, false, "notification");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, submodule_name, processName, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_035eepe</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1ydd1dv</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_035eepe" sourceRef="CallActivity_1o16in5" targetRef="CallActivity_NotifyClientsOfDeployment" />
+    <bpmn:endEvent id="EndEvent_187k15q" name="All Deployments Complete">
+      <bpmn:incoming>SequenceFlow_1ww1th3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="ServiceTask_16vzvwd" name="Deploy To Environments" camunda:class="com.att.cicd.deploymentpipeline.workflow.dataaccess.GetIndexInformation">
+      <bpmn:incoming>SequenceFlow_0x3gy28</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_07lr4z9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="ExclusiveGateway_1x34ztn" default="SequenceFlow_1sle4ls">
+      <bpmn:incoming>SequenceFlow_07lr4z9</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1ydd1dv</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1sle4ls</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_1ww1th3</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_07lr4z9" sourceRef="ServiceTask_16vzvwd" targetRef="ExclusiveGateway_1x34ztn" />
+    <bpmn:sequenceFlow id="SequenceFlow_1sle4ls" sourceRef="ExclusiveGateway_1x34ztn" targetRef="CallActivity_RequestDeploymentToProduction" />
+    <bpmn:sequenceFlow id="SequenceFlow_1ww1th3" sourceRef="ExclusiveGateway_1x34ztn" targetRef="EndEvent_187k15q">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[((execution.getVariable("array_indexer") > execution.getVariable("numDeployments")) == true)]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="SequenceFlow_1ydd1dv" name="Next Deployment" sourceRef="CallActivity_NotifyClientsOfDeployment" targetRef="ExclusiveGateway_1x34ztn" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="production-pipeline-jenkins">
+      <bpmndi:BPMNShape id="StartEvent_1yuo9ka_di" bpmnElement="StartEvent_ProductionPipeline">
+        <dc:Bounds x="79" y="278" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="52" y="314" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_0imsjhl_di" bpmnElement="CallActivity_RequestDeploymentToProduction">
+        <dc:Bounds x="405" y="256" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0x3gy28_di" bpmnElement="SequenceFlow_0x3gy28">
+        <di:waypoint xsi:type="dc:Point" x="115" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="167" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="96" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_04oras9_di" bpmnElement="ExclusiveGateway_04oras9" isMarkerVisible="true">
+        <dc:Bounds x="430" y="180" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="410" y="157" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0nlm3yn_di" bpmnElement="SequenceFlow_RequestDeploymentToProductionApprovalFalse">
+        <di:waypoint xsi:type="dc:Point" x="414" y="257" />
+        <di:waypoint xsi:type="dc:Point" x="414" y="205" />
+        <di:waypoint xsi:type="dc:Point" x="430" y="205" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="384" y="221" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0bcq0rt_di" bpmnElement="SequenceFlow_0bcq0rt">
+        <di:waypoint xsi:type="dc:Point" x="480" y="205" />
+        <di:waypoint xsi:type="dc:Point" x="498" y="205" />
+        <di:waypoint xsi:type="dc:Point" x="498" y="259" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="444" y="180" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1txo5xr_di" bpmnElement="ServiceTask_ProductionDeploymentNotification">
+        <dc:Bounds x="577" y="256" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_00mbhnd_di" bpmnElement="SequenceFlow_00mbhnd">
+        <di:waypoint xsi:type="dc:Point" x="505" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="577" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="496" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_1o16in5_di" bpmnElement="CallActivity_1o16in5">
+        <dc:Bounds x="738" y="256" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0deigo3_di" bpmnElement="SequenceFlow_0deigo3">
+        <di:waypoint xsi:type="dc:Point" x="677" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="738" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="662.5" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0m9ccf7_di" bpmnElement="SequenceFlow_jenkinsBuildFailed">
+        <di:waypoint xsi:type="dc:Point" x="788" y="336" />
+        <di:waypoint xsi:type="dc:Point" x="788" y="386" />
+        <di:waypoint xsi:type="dc:Point" x="455" y="386" />
+        <di:waypoint xsi:type="dc:Point" x="455" y="336" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="581.5" y="401" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_0roj88o_di" bpmnElement="CallActivity_NotifyClientsOfDeployment">
+        <dc:Bounds x="908" y="256" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_035eepe_di" bpmnElement="SequenceFlow_035eepe">
+        <di:waypoint xsi:type="dc:Point" x="838" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="908" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="828" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_187k15q_di" bpmnElement="EndEvent_187k15q">
+        <dc:Bounds x="318" y="369" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="291" y="405" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_16vzvwd_di" bpmnElement="ServiceTask_16vzvwd">
+        <dc:Bounds x="167" y="256" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1x34ztn_di" bpmnElement="ExclusiveGateway_1x34ztn" isMarkerVisible="true">
+        <dc:Bounds x="311" y="271" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="291" y="321" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_07lr4z9_di" bpmnElement="SequenceFlow_07lr4z9">
+        <di:waypoint xsi:type="dc:Point" x="267" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="311" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="244" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1sle4ls_di" bpmnElement="SequenceFlow_1sle4ls">
+        <di:waypoint xsi:type="dc:Point" x="361" y="296" />
+        <di:waypoint xsi:type="dc:Point" x="405" y="296" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="338" y="271" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ww1th3_di" bpmnElement="SequenceFlow_1ww1th3">
+        <di:waypoint xsi:type="dc:Point" x="336" y="321" />
+        <di:waypoint xsi:type="dc:Point" x="336" y="369" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="306" y="335" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ydd1dv_di" bpmnElement="SequenceFlow_1ydd1dv">
+        <di:waypoint xsi:type="dc:Point" x="958" y="256" />
+        <di:waypoint xsi:type="dc:Point" x="958" y="142" />
+        <di:waypoint xsi:type="dc:Point" x="336" y="142" />
+        <di:waypoint xsi:type="dc:Point" x="336" y="271" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="582" y="156" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

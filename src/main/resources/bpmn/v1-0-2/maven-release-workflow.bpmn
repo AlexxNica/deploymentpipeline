@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2">
+  <bpmn:process id="maven-release-workflow-v1-0-2" name="maven-release-workflow-v1-0-2" isExecutable="true">
+    <bpmn:documentation>Continuously build test and deploy code for your maven library | cubes</bpmn:documentation>
+    <bpmn:startEvent id="StartEvent_maven-release-workflow" name="Start Maven Release Workflow">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="gotsid" label="gotsid" type="string">
+            <camunda:properties>
+              <camunda:property id="Description" value="Application Gots ID" />
+            </camunda:properties>
+          </camunda:formField>
+          <camunda:formField id="name" label="name" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>SequenceFlow_0x44ahe</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:callActivity id="CallActivity_MavenDeploy" name="Maven Development Deployment" default="SequenceFlow_1s5bkl1" calledElement="maven-deploy">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">maven-release-workflow-v1-0-2</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">maven-deploy</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", "", "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("isSuccess", false);
+execution.setVariable("assignTo", "");
+execution.setVariable("isApproved", false);
+com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0x44ahe</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1s5bkl1</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_TemporaryGotsFlow</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_0x44ahe" sourceRef="StartEvent_maven-release-workflow" targetRef="CallActivity_MavenDeploy" />
+    <bpmn:callActivity id="CallActivity_MavenRelease" name="Maven Release" calledElement="maven-release">
+      <bpmn:extensionElements>
+        <camunda:in businessKey="#{execution.processBusinessKey}" />
+        <camunda:in variables="all" />
+        <camunda:out variables="all" />
+        <camunda:inputOutput>
+          <camunda:inputParameter name="pipeline_name">maven-release-workflow-v1-0-2</camunda:inputParameter>
+          <camunda:inputParameter name="pipeline_id">${execution.getProcessInstanceId()}</camunda:inputParameter>
+          <camunda:inputParameter name="submodule_name">maven-release</camunda:inputParameter>
+        </camunda:inputOutput>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.addToReport(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, false, "");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", submodule_name, "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.update(gotsid, name, pipeline_name, "", "", "", false, "", pipeline_id, "false");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1s5bkl1</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0kijzhv</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="SequenceFlow_1s5bkl1" sourceRef="CallActivity_MavenDeploy" targetRef="CallActivity_MavenRelease" />
+    <bpmn:endEvent id="EndEvent_0wkzahm" name="Complete">
+      <bpmn:incoming>SequenceFlow_0kijzhv</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_TemporaryGotsFlow</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_0kijzhv" sourceRef="CallActivity_MavenRelease" targetRef="EndEvent_0wkzahm" />
+    <bpmn:sequenceFlow id="SequenceFlow_TemporaryGotsFlow" name="No GOTS ID" sourceRef="CallActivity_MavenDeploy" targetRef="EndEvent_0wkzahm">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("gotsid").contains("TMP");
+execution.getVariable("associated")==false;]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="maven-release-workflow-v1-0-2">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_maven-release-workflow">
+        <dc:Bounds x="173" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_12ljudu_di" bpmnElement="CallActivity_MavenDeploy">
+        <dc:Bounds x="296" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0x44ahe_di" bpmnElement="SequenceFlow_0x44ahe">
+        <di:waypoint xsi:type="dc:Point" x="209" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="296" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="207.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="CallActivity_1go1t7t_di" bpmnElement="CallActivity_MavenRelease">
+        <dc:Bounds x="491" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1s5bkl1_di" bpmnElement="SequenceFlow_1s5bkl1">
+        <di:waypoint xsi:type="dc:Point" x="396" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="491" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="398.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_0wkzahm_di" bpmnElement="EndEvent_0wkzahm">
+        <dc:Bounds x="687.333" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660.333" y="138" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0kijzhv_di" bpmnElement="SequenceFlow_0kijzhv">
+        <di:waypoint xsi:type="dc:Point" x="591" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="687" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="594" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0hveg78_di" bpmnElement="SequenceFlow_TemporaryGotsFlow">
+        <di:waypoint xsi:type="dc:Point" x="346" y="160" />
+        <di:waypoint xsi:type="dc:Point" x="346" y="207" />
+        <di:waypoint xsi:type="dc:Point" x="705" y="207" />
+        <di:waypoint xsi:type="dc:Point" x="705" y="138" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="483.5" y="187" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,23 @@
+
+{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "deploymentpipeline",
+        "namespace": "replaceme"
+    },
+    "spec": {
+        "selector": {
+            "app": "deploymentpipeline"
+        },
+        "ports": [
+            {
+                "protocol": "TCP",
+                "port": 80,
+                "nodePort": 31000,                
+                "targetPort": 8888
+            }
+        ],
+        "type": "NodePort"
+    }
+}

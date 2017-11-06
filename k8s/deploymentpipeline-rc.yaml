@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: deploymentpipeline
+  namespace: replaceme
+spec:
+  replicas: 1
+  selector:
+    app: deploymentpipeline
+  template:
+    metadata:
+      labels:
+        app: deploymentpipeline
+    spec:
+      serviceAccount: default
+      containers:
+      - name: deploymentpipeline
+        image: replaceme
+        imagePullPolicy: Always
+        ports:
+         - containerPort: 8888
+        env:
+        - name: logging_config
+          valueFrom:
+            configMapKeyRef:
+              name: deploymentpipeline-config
+              key: logbackpath
+        - name: aafuserroles_file
+          valueFrom:
+            configMapKeyRef:
+              name: deploymentpipeline-config
+              key: aafuserrolespath
+        - name: cadi_file
+          valueFrom:
+            configMapKeyRef:
+              name: deploymentpipeline-config
+              key: cadipath              
+        - name: spring_datasource_driver_class
+          valueFrom:
+            configMapKeyRef:
+              key: spring.datasource.driver-class-name
+              name: deploymentpipeline-config
+        - name: spring_datasource_url
+          valueFrom:
+            configMapKeyRef:
+              key: spring.datasource.url
+              name: deploymentpipeline-config
+        - name: spring_datasource_username
+          valueFrom:
+            configMapKeyRef:
+              key: spring.datasource.username
+              name: deploymentpipeline-config 
+        - name: spring_datasource_password
+          valueFrom:
+            configMapKeyRef:
+              key: spring.datasource.password
+              name: deploymentpipeline-config                                          
+              
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config
+        - mountPath: /etc/aafkeystore
+          name: keyfile        
+      volumes:
+        - name: config
+          configMap:
+            name: deploymentpipeline-config
+            items:
+            - key: AAFUserRoles.properties
+              path: AAFUserRoles.properties
+            - key: logback.xml
+              path: logback.xml
+            - key: cadi.properties
+              path: cadi.properties           
+        - name: keyfile
+          secret:
+            secretName: deploymentpipeline-aaf-keystore
+     
+            
+         
+            

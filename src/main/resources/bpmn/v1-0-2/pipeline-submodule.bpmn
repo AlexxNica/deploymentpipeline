@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="_HzmR4Cv0EeaL6rTy2s5jfQ" targetNamespace="http://camunda.org/schema/1.0/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
+  <bpmn2:process id="pipeline-submodule" name="pipeline-submodule" isExecutable="true">
+    <bpmn2:startEvent id="StartEvent_pipeline-submodule">
+      <bpmn2:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="config" label="config" type="boolean" />
+        </camunda:formData>
+      </bpmn2:extensionElements>
+      <bpmn2:outgoing>SequenceFlow_1fl0dpn</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:sequenceFlow id="SequenceFlow_1fl0dpn" sourceRef="StartEvent_pipeline-submodule" targetRef="ScriptTask_pipeline-submodule-get-config" />
+    <bpmn2:endEvent id="EndEvent_pipeline-submodule" name="Completed">
+      <bpmn2:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="isSuccess"><![CDATA[execution.getVariable("isSuccess");]]></camunda:inputParameter>
+          <camunda:inputParameter name="automatic"><![CDATA[execution.getVariable("automatic");]]></camunda:inputParameter>
+        </camunda:inputOutput>
+      </bpmn2:extensionElements>
+      <bpmn2:incoming>SequenceFlow_0h6s2c2</bpmn2:incoming>
+      <bpmn2:incoming>SequenceFlow_02bp5w0</bpmn2:incoming>
+      <bpmn2:incoming>SequenceFlow_autoprocessFailed</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:exclusiveGateway id="ExclusiveGateway_AutoOrManual" default="SequenceFlow_0liohmi">
+      <bpmn2:incoming>SequenceFlow_1ag4h1p</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_handle-automatically</bpmn2:outgoing>
+      <bpmn2:outgoing>SequenceFlow_0liohmi</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+    <bpmn2:sequenceFlow id="SequenceFlow_handle-automatically" name="Handle Task Automatically" sourceRef="ExclusiveGateway_AutoOrManual" targetRef="ScriptTask_PipelineAutoProcess">
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" language="groovy"><![CDATA[com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic")=="true"]]></bpmn2:conditionExpression>
+    </bpmn2:sequenceFlow>
+    <bpmn2:userTask id="UserTask_PipelineManualProcess" name="Manual Process" camunda:assignee="${assignTo}">
+      <bpmn2:documentation><![CDATA[${execution.getVariable("processDescription")}]]></bpmn2:documentation>
+      <bpmn2:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("todo", "true");
+execution.setVariable("taskStatus", "Awaiting User Action");
+]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("todo", "false");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn2:extensionElements>
+      <bpmn2:incoming>SequenceFlow_1l365rj</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1wkil6t</bpmn2:outgoing>
+    </bpmn2:userTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_0liohmi" name="Handle Task Manually" sourceRef="ExclusiveGateway_AutoOrManual" targetRef="ServiceTask_pipeline-submodule-send-email" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1pctxy9" sourceRef="ScriptTask_PipelineAutoProcess" targetRef="ExclusiveGateway_1h9iaa6" />
+    <bpmn2:scriptTask id="ScriptTask_pipeline-submodule-get-config" name="Get Config" scriptFormat="groovy">
+      <bpmn2:incoming>SequenceFlow_1fl0dpn</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0q2thy3</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[execution.setVariable("assignTo",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name, submodule_name, processName,"assignTo"));
+
+execution.setVariable("associated", com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.isAssociated(gotsid));
+
+execution.setVariable("refreshRate", com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getSystemConfig("jenkinsRefreshRate").toString());
+
+
+if (com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name, submodule_name, processName, "assignTo") == null || com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name, submodule_name, processName, "assignTo").trim().isEmpty())
+execution.setVariable("assignTo", com.att.cicd.deploymentpipeline.util.AAFConnector.getAdminList(gotsid));
+
+
+
+
+execution.setVariable("automatic",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic"));
+
+execution.setVariable("jenkinsURL",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,"global", "jenkinsURL"));
+
+execution.setVariable("jobName",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "jobName"));
+
+execution.setVariable("jenkinsUserName",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,"global", "jenkinsUserName"));
+
+execution.setVariable("jenkinsPassword",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,"global", "jenkinsPassword"));
+
+execution.setVariable("jenkinsParams",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "jenkinsParams"));
+
+execution.setVariable("jenkinsEmailNotification",com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,"global", "jenkinsEmailNotification"));
+
+if (com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getVariable(gotsid, name,pipeline_name,submodule_name,processName, "automatic")=="true") {
+execution.setVariable("processDescription", com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getDescription("descriptionAutomatic", pipeline_name, submodule_name, processName));
+} else {
+execution.setVariable("processDescription", com.att.cicd.deploymentpipeline.workflow.dataaccess.Database.getDescription("description", pipeline_name, submodule_name, processName));
+}
+]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_0q2thy3" sourceRef="ScriptTask_pipeline-submodule-get-config" targetRef="ScriptTask_PipelineUpdateClients" />
+    <bpmn2:serviceTask id="ScriptTask_PipelineAutoProcess" name="Auto Process" camunda:asyncBefore="true" camunda:class="com.att.cicd.deploymentpipeline.workflow.external.jenkins.AutoProcess">
+      <bpmn2:documentation><![CDATA[${execution.getVariable("processDescriptionAutomatic")}]]></bpmn2:documentation>
+      <bpmn2:extensionElements>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("taskStatus", "Jenkins: Starting");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn2:extensionElements>
+      <bpmn2:incoming>SequenceFlow_handle-automatically</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1pctxy9</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:scriptTask id="ScriptTask_set-success" name="Set Success" scriptFormat="groovy">
+      <bpmn2:incoming>SequenceFlow_1wkil6t</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_0h6s2c2</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[execution.setVariable("isSuccess", true);]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_0h6s2c2" sourceRef="ScriptTask_set-success" targetRef="EndEvent_pipeline-submodule" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1l365rj" sourceRef="ServiceTask_pipeline-submodule-send-email" targetRef="UserTask_PipelineManualProcess" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1wkil6t" sourceRef="UserTask_PipelineManualProcess" targetRef="ScriptTask_set-success" />
+    <bpmn2:serviceTask id="ServiceTask_pipeline-submodule-send-email" name="Send Email Notification" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.ApprovalNotification">
+      <bpmn2:incoming>SequenceFlow_0liohmi</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1l365rj</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:scriptTask id="ScriptTask_PipelineUpdateClients" name="Update Clients" scriptFormat="groovy">
+      <bpmn2:incoming>SequenceFlow_0q2thy3</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1ag4h1p</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[//com.att.cicd.deploymentpipeline.service.WebSocketService.updateClients("fa85a84e1250e5e621218ab4c2507405", assignTo, gotsid, name, pipeline_id);]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_1ag4h1p" sourceRef="ScriptTask_PipelineUpdateClients" targetRef="ExclusiveGateway_AutoOrManual" />
+    <bpmn2:sequenceFlow id="SequenceFlow_1hqwi9c" sourceRef="Check_status" targetRef="ExclusiveGateway_1ozxqya" />
+    <bpmn2:intermediateCatchEvent id="IntermediateThrowEvent_1ofc26e">
+      <bpmn2:incoming>SequenceFlow_looping</bpmn2:incoming>
+      <bpmn2:incoming>SequenceFlow_1kltmb5</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_144yv45</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition>
+        <bpmn2:timeDuration xsi:type="bpmn2:tFormalExpression"><![CDATA[${execution.getVariable("refreshRate")}]]></bpmn2:timeDuration>
+      </bpmn2:timerEventDefinition>
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:serviceTask id="Check_status" name="Check Status" camunda:class="com.att.cicd.deploymentpipeline.workflow.external.jenkins.CheckStatus">
+      <bpmn2:incoming>SequenceFlow_144yv45</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1hqwi9c</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+    <bpmn2:sequenceFlow id="SequenceFlow_144yv45" sourceRef="IntermediateThrowEvent_1ofc26e" targetRef="Check_status" />
+    <bpmn2:exclusiveGateway id="ExclusiveGateway_1ozxqya" default="SequenceFlow_02bp5w0">
+      <bpmn2:incoming>SequenceFlow_1hqwi9c</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_02bp5w0</bpmn2:outgoing>
+      <bpmn2:outgoing>SequenceFlow_looping</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+    <bpmn2:sequenceFlow id="SequenceFlow_02bp5w0" sourceRef="ExclusiveGateway_1ozxqya" targetRef="EndEvent_pipeline-submodule" />
+    <bpmn2:sequenceFlow id="SequenceFlow_looping" sourceRef="ExclusiveGateway_1ozxqya" targetRef="IntermediateThrowEvent_1ofc26e">
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("loop")==true]]></bpmn2:conditionExpression>
+    </bpmn2:sequenceFlow>
+    <bpmn2:exclusiveGateway id="ExclusiveGateway_1h9iaa6" default="SequenceFlow_1kltmb5">
+      <bpmn2:incoming>SequenceFlow_1pctxy9</bpmn2:incoming>
+      <bpmn2:outgoing>SequenceFlow_1kltmb5</bpmn2:outgoing>
+      <bpmn2:outgoing>SequenceFlow_autoprocessFailed</bpmn2:outgoing>
+    </bpmn2:exclusiveGateway>
+    <bpmn2:sequenceFlow id="SequenceFlow_1kltmb5" sourceRef="ExclusiveGateway_1h9iaa6" targetRef="IntermediateThrowEvent_1ofc26e" />
+    <bpmn2:sequenceFlow id="SequenceFlow_autoprocessFailed" sourceRef="ExclusiveGateway_1h9iaa6" targetRef="EndEvent_pipeline-submodule">
+      <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("isSuccess")==false]]></bpmn2:conditionExpression>
+    </bpmn2:sequenceFlow>
+  </bpmn2:process>
+  <bpmn2:signal id="Signal_1cayn3x" name="ProcessError" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="pipeline-submodule">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_pipeline-submodule">
+        <dc:Bounds x="271" y="17" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="244" y="53" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1fl0dpn_di" bpmnElement="SequenceFlow_1fl0dpn">
+        <di:waypoint xsi:type="dc:Point" x="288" y="53" />
+        <di:waypoint xsi:type="dc:Point" x="288" y="117" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="258" y="75" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_1mqb498_di" bpmnElement="EndEvent_pipeline-submodule">
+        <dc:Bounds x="1173" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1146" y="236" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0kguvjj_di" bpmnElement="ExclusiveGateway_AutoOrManual" isMarkerVisible="true">
+        <dc:Bounds x="529" y="132" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="509" y="182" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0aliu89_di" bpmnElement="SequenceFlow_handle-automatically">
+        <di:waypoint xsi:type="dc:Point" x="554" y="132" />
+        <di:waypoint xsi:type="dc:Point" x="554" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="604" y="106" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="509" y="68" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="UserTask_0ribote_di" bpmnElement="UserTask_PipelineManualProcess">
+        <dc:Bounds x="850" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0liohmi_di" bpmnElement="SequenceFlow_0liohmi">
+        <di:waypoint xsi:type="dc:Point" x="554" y="182" />
+        <di:waypoint xsi:type="dc:Point" x="554" y="210" />
+        <di:waypoint xsi:type="dc:Point" x="692" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="579.0147058823529" y="176" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1pctxy9_di" bpmnElement="SequenceFlow_1pctxy9">
+        <di:waypoint xsi:type="dc:Point" x="704" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="749" y="106" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="681.5" y="81" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ScriptTask_1lu45t0_di" bpmnElement="ScriptTask_pipeline-submodule-get-config">
+        <dc:Bounds x="238" y="117" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0q2thy3_di" bpmnElement="SequenceFlow_0q2thy3">
+        <di:waypoint xsi:type="dc:Point" x="338" y="157" />
+        <di:waypoint xsi:type="dc:Point" x="389" y="157" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="318.5" y="132" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_16tew1g_di" bpmnElement="ScriptTask_PipelineAutoProcess">
+        <dc:Bounds x="604" y="66" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ScriptTask_0s478c9_di" bpmnElement="ScriptTask_set-success">
+        <dc:Bounds x="1004" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0h6s2c2_di" bpmnElement="SequenceFlow_0h6s2c2">
+        <di:waypoint xsi:type="dc:Point" x="1104" y="210" />
+        <di:waypoint xsi:type="dc:Point" x="1173" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1093.5" y="185" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1l365rj_di" bpmnElement="SequenceFlow_1l365rj">
+        <di:waypoint xsi:type="dc:Point" x="792" y="210" />
+        <di:waypoint xsi:type="dc:Point" x="850" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="776" y="185" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1wkil6t_di" bpmnElement="SequenceFlow_1wkil6t">
+        <di:waypoint xsi:type="dc:Point" x="950" y="210" />
+        <di:waypoint xsi:type="dc:Point" x="1004" y="210" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="932" y="185" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_0yjx576_di" bpmnElement="ServiceTask_pipeline-submodule-send-email">
+        <dc:Bounds x="692" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ScriptTask_1r69mny_di" bpmnElement="ScriptTask_PipelineUpdateClients">
+        <dc:Bounds x="389" y="117" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ag4h1p_di" bpmnElement="SequenceFlow_1ag4h1p">
+        <di:waypoint xsi:type="dc:Point" x="489" y="157" />
+        <di:waypoint xsi:type="dc:Point" x="529" y="157" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="464" y="132" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1hqwi9c_di" bpmnElement="SequenceFlow_1hqwi9c">
+        <di:waypoint xsi:type="dc:Point" x="1032" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="1089" y="106" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1015.5" y="81" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="IntermediateCatchEvent_09btnmh_di" bpmnElement="IntermediateThrowEvent_1ofc26e">
+        <dc:Bounds x="853" y="88" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="826" y="124" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_0s5v4be_di" bpmnElement="Check_status">
+        <dc:Bounds x="932" y="66" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_144yv45_di" bpmnElement="SequenceFlow_144yv45">
+        <di:waypoint xsi:type="dc:Point" x="889" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="932" y="106" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="865.5" y="81" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1ozxqya_di" bpmnElement="ExclusiveGateway_1ozxqya" isMarkerVisible="true">
+        <dc:Bounds x="1089" y="81" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1069" y="131" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_02bp5w0_di" bpmnElement="SequenceFlow_02bp5w0">
+        <di:waypoint xsi:type="dc:Point" x="1139" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="1191" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="1191" y="192" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1120" y="81" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1svf5bx_di" bpmnElement="SequenceFlow_looping">
+        <di:waypoint xsi:type="dc:Point" x="1114" y="81" />
+        <di:waypoint xsi:type="dc:Point" x="1114" y="33" />
+        <di:waypoint xsi:type="dc:Point" x="871" y="33" />
+        <di:waypoint xsi:type="dc:Point" x="871" y="88" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="947.5" y="8" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1h9iaa6_di" bpmnElement="ExclusiveGateway_1h9iaa6" isMarkerVisible="true">
+        <dc:Bounds x="749" y="81" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="729" y="131" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1kltmb5_di" bpmnElement="SequenceFlow_1kltmb5">
+        <di:waypoint xsi:type="dc:Point" x="799" y="106" />
+        <di:waypoint xsi:type="dc:Point" x="853" y="106" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="781" y="81" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0137s7h_di" bpmnElement="SequenceFlow_autoprocessFailed">
+        <di:waypoint xsi:type="dc:Point" x="774" y="81" />
+        <di:waypoint xsi:type="dc:Point" x="774" y="4" />
+        <di:waypoint xsi:type="dc:Point" x="1191" y="4" />
+        <di:waypoint xsi:type="dc:Point" x="1191" y="192" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="937.5" y="-21" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

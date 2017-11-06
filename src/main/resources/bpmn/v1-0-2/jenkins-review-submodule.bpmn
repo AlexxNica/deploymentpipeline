@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="1.2.2">
+  <bpmn:process id="jenkins-review-submodule" name="jenkins-review-submodule" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_jenkis-review-submodule">
+      <bpmn:outgoing>SequenceFlow_1ox35io</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="ScriptTask_jenkinsReviewUpdateClients" name="Update Clients" scriptFormat="groovy">
+      <bpmn:incoming>SequenceFlow_05t57j3</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_03b3gyu</bpmn:outgoing>
+      <bpmn:script><![CDATA[//com.att.cicd.deploymentpipeline.service.WebSocketService.updateClients("fa85a84e1250e5e621218ab4c2507405", assignTo, gotsid, name, pipeline_id);]]></bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:serviceTask id="ServiceTask_jenkins-review-submodule-send-email-notification" name="Send Email Notification" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.ApprovalNotification">
+      <bpmn:incoming>SequenceFlow_03b3gyu</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_19l7jwt</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="UserTask_JenkinsManualProcess" name="Manual Process" camunda:assignee="${assignTo}">
+      <bpmn:documentation><![CDATA[${execution.getVariable("processDescription")}]]></bpmn:documentation>
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="isApproved" label="Approve" type="boolean" />
+        </camunda:formData>
+        <camunda:executionListener event="start">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("todo", "true");
+execution.setVariable("requireApproval", "true");]]></camunda:script>
+        </camunda:executionListener>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="groovy"><![CDATA[execution.setVariable("todo", "false");
+execution.setVariable("requireApproval", "false");]]></camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_19l7jwt</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_179tguw</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1ox35io" sourceRef="StartEvent_jenkis-review-submodule" targetRef="ScriptTask_jenkins-review-submodule-get-config" />
+    <bpmn:sequenceFlow id="SequenceFlow_1dln8tb" sourceRef="ScriptTask_jenkins-review-submodule-get-config" targetRef="ExclusiveGateway_1e80zdk" />
+    <bpmn:sequenceFlow id="SequenceFlow_03b3gyu" sourceRef="ScriptTask_jenkinsReviewUpdateClients" targetRef="ServiceTask_jenkins-review-submodule-send-email-notification" />
+    <bpmn:sequenceFlow id="SequenceFlow_19l7jwt" sourceRef="ServiceTask_jenkins-review-submodule-send-email-notification" targetRef="UserTask_JenkinsManualProcess" />
+    <bpmn:sequenceFlow id="SequenceFlow_179tguw" sourceRef="UserTask_JenkinsManualProcess" targetRef="ServiceTask_jenkinsSendCompletedTaskEmail" />
+    <bpmn:endEvent id="EndEvent_jenkins-review-submodule">
+      <bpmn:incoming>SequenceFlow_1ldvvoi</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_RequestBuildDisabled</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="SequenceFlow_1ldvvoi" sourceRef="ServiceTask_jenkinsSendCompletedTaskEmail" targetRef="EndEvent_jenkins-review-submodule" />
+    <bpmn:exclusiveGateway id="ExclusiveGateway_1e80zdk" default="SequenceFlow_0850q8a">
+      <bpmn:incoming>SequenceFlow_1dln8tb</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_RequestBuildDisabled</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_0850q8a</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="SequenceFlow_RequestBuildDisabled" name="Request Build Disabled" sourceRef="ExclusiveGateway_1e80zdk" targetRef="EndEvent_jenkins-review-submodule">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy"><![CDATA[execution.getVariable("enableApproval")=="false";
+]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:serviceTask id="ScriptTask_jenkins-review-submodule-get-config" name="Get Config" default="SequenceFlow_1dln8tb" camunda:class="com.att.cicd.deploymentpipeline.workflow.dataaccess.GetConfig">
+      <bpmn:incoming>SequenceFlow_1ox35io</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1dln8tb</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_0850q8a" sourceRef="ExclusiveGateway_1e80zdk" targetRef="ScriptTask_1aze8wz" />
+    <bpmn:serviceTask id="ServiceTask_jenkinsSendCompletedTaskEmail" name="Send Email Notification" camunda:class="com.att.cicd.deploymentpipeline.workflow.notification.CompletedTaskAlert">
+      <bpmn:incoming>SequenceFlow_179tguw</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1ldvvoi</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:scriptTask id="ScriptTask_1aze8wz" name="Set Process Info" scriptFormat="groovy">
+      <bpmn:incoming>SequenceFlow_0850q8a</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_05t57j3</bpmn:outgoing>
+      <bpmn:script><![CDATA[execution.setVariable("taskStatus","Awaiting Approval");
+]]></bpmn:script>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="SequenceFlow_05t57j3" sourceRef="ScriptTask_1aze8wz" targetRef="ScriptTask_jenkinsReviewUpdateClients" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="jenkins-review-submodule">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_jenkis-review-submodule">
+        <dc:Bounds x="127" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="100" y="138" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ScriptTask_18sn74e_di" bpmnElement="ScriptTask_jenkinsReviewUpdateClients">
+        <dc:Bounds x="631" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_1w0hhzb_di" bpmnElement="ServiceTask_jenkins-review-submodule-send-email-notification">
+        <dc:Bounds x="790" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_0ba3k4e_di" bpmnElement="UserTask_JenkinsManualProcess">
+        <dc:Bounds x="950" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ox35io_di" bpmnElement="SequenceFlow_1ox35io">
+        <di:waypoint xsi:type="dc:Point" x="163" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="194" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="133.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1dln8tb_di" bpmnElement="SequenceFlow_1dln8tb">
+        <di:waypoint xsi:type="dc:Point" x="294" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="345" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="274.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_03b3gyu_di" bpmnElement="SequenceFlow_03b3gyu">
+        <di:waypoint xsi:type="dc:Point" x="731" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="790" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="715.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_19l7jwt_di" bpmnElement="SequenceFlow_19l7jwt">
+        <di:waypoint xsi:type="dc:Point" x="890" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="950" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="875" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_179tguw_di" bpmnElement="SequenceFlow_179tguw">
+        <di:waypoint xsi:type="dc:Point" x="1050" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="1115" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1037.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="EndEvent_01pj2di_di" bpmnElement="EndEvent_jenkins-review-submodule">
+        <dc:Bounds x="1274" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1247" y="138" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1ldvvoi_di" bpmnElement="SequenceFlow_1ldvvoi">
+        <di:waypoint xsi:type="dc:Point" x="1215" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="1274" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1199.5" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ExclusiveGateway_1e80zdk_di" bpmnElement="ExclusiveGateway_1e80zdk" isMarkerVisible="true">
+        <dc:Bounds x="345" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="145" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0fnnph1_di" bpmnElement="SequenceFlow_RequestBuildDisabled">
+        <di:waypoint xsi:type="dc:Point" x="370" y="145" />
+        <di:waypoint xsi:type="dc:Point" x="370" y="206" />
+        <di:waypoint xsi:type="dc:Point" x="1292" y="206" />
+        <di:waypoint xsi:type="dc:Point" x="1292" y="138" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="798.0880187391075" y="218" width="67" height="24" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1a88z2n_di" bpmnElement="ScriptTask_jenkins-review-submodule-get-config">
+        <dc:Bounds x="194" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0850q8a_di" bpmnElement="SequenceFlow_0850q8a">
+        <di:waypoint xsi:type="dc:Point" x="395" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="459" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="382" y="95" width="90" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_1s40e4y_di" bpmnElement="ServiceTask_jenkinsSendCompletedTaskEmail">
+        <dc:Bounds x="1115" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ScriptTask_1aze8wz_di" bpmnElement="ScriptTask_1aze8wz">
+        <dc:Bounds x="459" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_05t57j3_di" bpmnElement="SequenceFlow_05t57j3">
+        <di:waypoint xsi:type="dc:Point" x="559" y="120" />
+        <di:waypoint xsi:type="dc:Point" x="631" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="595" y="99" width="0" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
