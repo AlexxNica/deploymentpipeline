@@ -13,7 +13,7 @@ The Eco tool is an easy-to-use, self-service automation process to generate a ne
 * MariaDB
 
 ### Required Applications
-* AAF
+* AAF ([here](https://github.com/att/AAF))
 * CatalogAPI
 
 ### Other Requirements
