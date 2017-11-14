@@ -79,7 +79,7 @@ public class AAFConnector {
 		textEncryptor.setPassword(secret);
 		HttpURLConnection connection = getConnection(path, "GET");
 		InputStream content = null;
-		String response = "";
+		String response = "no response";
 
 		try {
 			LOGGER.info("ResponseCode :" + connection.getResponseCode());
@@ -88,11 +88,13 @@ public class AAFConnector {
 			} else {
 				content = (InputStream) connection.getErrorStream();
 			}
-			BufferedReader in = new BufferedReader(new InputStreamReader(content));
-			String line;
-
-			while ((line = in.readLine()) != null) {
-				response = response + line;
+			if(content != null) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(content));
+				String line;
+				response="";
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -112,7 +114,7 @@ public class AAFConnector {
 		textEncryptor.setPassword(secret);
 		HttpURLConnection connection = getConnection(path, "POST");
 		InputStream content = null;
-		String response = "";
+		String response = "no response";
 
 		try {
 			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
@@ -123,11 +125,13 @@ public class AAFConnector {
 			} else {
 				content = (InputStream) connection.getErrorStream();
 			}
-			BufferedReader in = new BufferedReader(new InputStreamReader(content));
-			String line;
-
-			while ((line = in.readLine()) != null) {
-				response = response + line;
+			if(content != null) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(content));
+				String line;
+				response="";
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -146,7 +150,7 @@ public class AAFConnector {
 		textEncryptor.setPassword(secret);
 		HttpURLConnection connection = getConnection(path, "PUT");
 		InputStream content = null;
-		String response = "";
+		String response = "no response";
 
 		try {
 			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
@@ -157,11 +161,13 @@ public class AAFConnector {
 			} else {
 				content = (InputStream) connection.getErrorStream();
 			}
-			BufferedReader in = new BufferedReader(new InputStreamReader(content));
-			String line;
-
-			while ((line = in.readLine()) != null) {
-				response = response + line;
+			if(content != null) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(content));
+				String line;
+				response="";
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -180,7 +186,7 @@ public class AAFConnector {
 		textEncryptor.setPassword(secret);
 		HttpURLConnection connection = getConnection(path, "DELETE");
 		InputStream content = null;
-		String response = "";
+		String response = "no response";
 
 		try {
 			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
@@ -191,11 +197,13 @@ public class AAFConnector {
 			} else {
 				content = (InputStream) connection.getErrorStream();
 			}
-			BufferedReader in = new BufferedReader(new InputStreamReader(content));
-			String line;
-
-			while ((line = in.readLine()) != null) {
-				response = response + line;
+			if(content != null) {
+				BufferedReader in = new BufferedReader(new InputStreamReader(content));
+				String line;
+				response="";
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
