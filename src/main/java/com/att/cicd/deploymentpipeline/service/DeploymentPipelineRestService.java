@@ -1548,6 +1548,7 @@ public class DeploymentPipelineRestService {
 			StringEntity params = new StringEntity(postBody);
 			request.addHeader("content-type", "application/json");
 			request.addHeader("Cookie", authCookie);
+			request.addHeader("Authorization",this.request.getHeader("Authorization"));
 			request.setEntity(params);
 			HttpResponse response = httpClient.execute(request);
 			HttpEntity entity = response.getEntity();
@@ -1846,6 +1847,7 @@ public class DeploymentPipelineRestService {
 			StringEntity params = new StringEntity(postBody);
 			request.addHeader("content-type", "application/json");
 			request.addHeader("Cookie", authCookie);
+			request.addHeader("Authorization",this.request.getHeader("Authorization"));
 			request.setEntity(params);
 			HttpResponse response = httpClient.execute(request);
 			HttpEntity entity = response.getEntity();
@@ -2063,6 +2065,7 @@ public class DeploymentPipelineRestService {
 			StringEntity params = new StringEntity(postBody);
 			request.addHeader("content-type", "application/json");
 			request.addHeader("Cookie", authCookie);
+			request.addHeader("Authorization",this.request.getHeader("Authorization"));
 			request.setEntity(params);
 			HttpResponse response = httpClient.execute(request);
 			HttpEntity entity = response.getEntity();
@@ -2213,6 +2216,7 @@ public class DeploymentPipelineRestService {
 			StringEntity params = new StringEntity(postBody);
 			request.addHeader("content-type", "application/json");
 			request.addHeader("Cookie", authCookie);
+			request.addHeader("Authorization",this.request.getHeader("Authorization"));
 			request.setEntity(params);
 			HttpResponse response = httpClient.execute(request);
 			HttpEntity entity = response.getEntity();
