@@ -222,12 +222,12 @@ public class PipelineFlowAutoProcess implements JavaDelegate {
 			Date dt1 = new Date();
 			String endTime = sdf.format(dt1);
 			String info = "There was an issue finding the job with the job name provided. Please ensure that this job can be found here: "
-					+ c.getJsonString(Database.getBuildServerByID(build_server_id), "environment_url") + "/jenkins/job/"
+					+ c.getJsonString(Database.getBuildServerByID(build_server_id), "environment_url") + "/job/"
 					+ jobName;
 			ApplicationLogger.callLog(gotsid, deployConfigName, pipelineId, pipelineName, submoduleName, processName,
 					"PipelineFlowAutoProcess", "execute", info, true);
 			reason = "There was an issue finding the job with the job name and parameters provided. Please ensure that this job can be found here: "
-					+ c.getJsonString(Database.getBuildServerByID(build_server_id), "environment_url") + "/jenkins/job/"
+					+ c.getJsonString(Database.getBuildServerByID(build_server_id), "environment_url") + "/job/"
 					+ jobName;
 			ExceptionNotification.mail(recipient, jobName, gotsid, name, reason, jenkinsURL, jenkinsUserName,
 					processName, processDescription, submoduleName, pipelineName, acronym, pipelineId,
@@ -383,12 +383,12 @@ public class PipelineFlowAutoProcess implements JavaDelegate {
 		// or not.
 		if (jenkinsParams == null || jenkinsParams.equals("")) {
 			// 1a get job's queue id from the location header
-			location = startJob(jenkinsURL + "/jenkins/job/" + jobName + "/build", auth, gotsid, name, pipelineName,
+			location = startJob(jenkinsURL + "/job/" + jobName + "/build", auth, gotsid, name, pipelineName,
 					submoduleName, processName, pipelineId);
 		} else {
 			// 1b get job's queue id from the location header when user has
 			// params
-			location = startJobWithParams(jenkinsURL + "/jenkins/job/" + jobName + "/buildWithParameters",
+			location = startJobWithParams(jenkinsURL + "/job/" + jobName + "/buildWithParameters",
 					jenkinsParams, auth, gotsid, name, pipelineName, submoduleName, processName, pipelineId);
 		}
 

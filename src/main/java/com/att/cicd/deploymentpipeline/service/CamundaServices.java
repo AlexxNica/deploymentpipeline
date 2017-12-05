@@ -980,7 +980,7 @@ public class CamundaServices {
 		if (c.getJsonString(c.getJsonMap(topObject, "jenkinsLoginFailed"), "value").equals("false")) {
 			String jenkinsJob = c.getJsonString(c.getJsonMap(topObject, "jobName"), "value");
 			buildServer = c.getJsonString(c.getJsonMap(topObject, "jenkinsURL"), "value");
-			buildServerURL = buildServer + "/jenkins/job/" + jenkinsJob;
+			buildServerURL = buildServer + "/job/" + jenkinsJob;
 		}
 		if (!buildServer.equals("")) {
 			systemConnectionsInfo.put("Build Server (Jenkins Dashboard)", buildServerURL);

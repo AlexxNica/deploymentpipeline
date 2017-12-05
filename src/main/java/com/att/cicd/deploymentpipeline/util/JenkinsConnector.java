@@ -22,7 +22,7 @@ public class JenkinsConnector {
 		HttpURLConnection connection = null;
 		try {		
 				String baseUrl = (String) System.getProperty("jenkinsbase");
-			    URL url = new URL(baseUrl+jenkinsJobName+path);					
+			    URL url = new URL(baseUrl+"/job/"+jenkinsJobName+path);					
 				connection = (HttpURLConnection) url.openConnection();						
 				connection.setRequestMethod(method);
 				connection.setDoOutput(true);								
